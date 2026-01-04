@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CryptoStat Tracker</title>
+<title>CryptoStat Tracker Ultra Pro+</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-	.ad-safe-top{
+  .ad-safe-top{
   width:100%;
   min-height:60px;   /* ارتفاع آمن */
   display:flex;
@@ -19,7 +19,7 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Segoe UI',Arial,sans-serif;display:flex;flex-direction:column;min-height:100vh;}
 
-/* BACKGROUND GRADIENT */
+/* BACKGROUND */
 body{
   background: linear-gradient(135deg,#1f1c2c,#928dab);
   color:white;
@@ -97,7 +97,8 @@ h2{
   padding:20px;
   border-radius:15px;
   display:flex;
-  align-items:center;
+  flex-direction:column;
+  align-items:flex-start;
   transition:0.3s;
   cursor:pointer;
 }
@@ -121,6 +122,9 @@ h2{
 .positive{color:#00ffab;}
 .negative{color:#ff4d6d;}
 
+/* DYNAMIC NOTES */
+.dynamic-note{margin-top:4px;font-size:0.8rem;color:#fff;}
+
 /* CHART CONTAINERS */
 .chart-container{
   background: linear-gradient(135deg,#1f1c2c,#4b0075);
@@ -128,6 +132,16 @@ h2{
   border-radius:15px;
   box-shadow:0 4px 15px rgba(0,0,0,0.5);
   margin-bottom:30px;
+}
+
+/* SEARCH BAR */
+#coinSearchInput{
+  width:100%;
+  padding:12px;
+  border-radius:8px;
+  border:none;
+  font-size:1rem;
+  margin-bottom:10px;
 }
 
 /* FOOTER */
@@ -155,7 +169,8 @@ footer{
 <body>
 
 <header>
-  <h1>CryptoStat Tracker</h1>
+  <h1>CryptoStat Tracker </h1>
+  
 	<div class="ad-safe-top">
 	</div>
   <nav>
@@ -169,6 +184,17 @@ footer{
 <main>
   <!-- HOME -->
   <section id="homePage">
+    <section id="dashboard" style="margin-bottom:20px;">
+      <h2>🔥 Trending & Alerts Dashboard</h2>
+      <div id="dashboardCards" class="coins-grid"></div>
+    </section>
+
+    <section id="searchSection" style="margin-bottom:20px;">
+      <h2>🔎 Search Coins</h2>
+      <input type="text" id="coinSearchInput" placeholder="Type coin name or symbol...">
+      <div id="searchResults" class="coins-grid"></div>
+    </section>
+
     <h2>Welcome to CryptoStat Tracker</h2>
     <div class="coins-grid" id="homeTop5"></div>
   </section>
@@ -181,9 +207,16 @@ footer{
 
   <!-- MARKET STATS -->
   <section id="marketStatsPage" class="hidden">
-    <h2>Market Stats</h2>
-    <div class="chart-container"><canvas id="marketChart"></canvas></div>
+    <h2>Market Stats Ultra Pro+</h2>
+    
+    <!-- KPI CARDS -->
+    <div id="marketCards" class="coins-grid" style="margin-bottom:30px;"></div>
+    
+    <!-- CHARTS -->
+    <div class="chart-container"><canvas id="marketCapChart"></canvas></div>
     <div class="chart-container"><canvas id="dominanceChart"></canvas></div>
+    <div class="chart-container"><canvas id="gainersChart"></canvas></div>
+    <div class="chart-container"><canvas id="losersChart"></canvas></div>
   </section>
 
   <!-- COIN EXPLORER -->
@@ -194,11 +227,13 @@ footer{
 </main>
 
 <footer>
-&copy; 2026 CryptoStat Tracker | Made with ❤️
+&copy; 2026 CryptoStat Tracker Ultra Pro+ | Made with ❤️
 </footer>
 
 <script>
+// =======================
 // NAVIGATION
+// =======================
 const links=document.querySelectorAll('.nav-link');
 const sections=document.querySelectorAll('main section');
 links.forEach(link=>{
@@ -211,21 +246,36 @@ links.forEach(link=>{
   });
 });
 
-// FETCH COINS
+// =======================
+// GLOBAL VARIABLES
+// =======================
 let coinsData=[];
+let marketCapChart, dominanceChart, gainersChart, losersChart;
+
+// =======================
+// FETCH COINS & GLOBAL DATA
+// =======================
 async function fetchCoins(){
-  const url='https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false';
   try{
-    const response=await fetch(url);
-    coinsData=await response.json();
+    const coinsRes = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false');
+    coinsData = await coinsRes.json();
+
+    const globalRes = await fetch('https://api.coingecko.com/api/v3/global');
+    const globalData = await globalRes.json();
+    const btcDominance = globalData.data.market_cap_percentage.btc || 65;
+
     displayTopCoins();
     displayExplorer();
     displayHomeTop5();
-    displayMarketChart();
+    displayDashboard();
+    displayMarketStatsRich(btcDominance);
+
   }catch(err){console.error(err);}
 }
 
+// =======================
 // DISPLAY FUNCTIONS
+// =======================
 function displayTopCoins(){
   const grid=document.getElementById('coinsGridTop'); grid.innerHTML='';
   coinsData.forEach(c=>{
@@ -256,26 +306,146 @@ function displayHomeTop5(){
   });
 }
 
-// MARKET CHARTS
-let marketChart,dominanceChart;
-function displayMarketChart(){
-  const ctx=document.getElementById('marketChart').getContext('2d');
-  const labels=coinsData.map(c=>c.symbol.toUpperCase());
-  const data=coinsData.map(c=>c.market_cap);
-  if(marketChart) marketChart.destroy();
-  marketChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Market Cap USD',data,backgroundColor:'rgba(255,106,0,0.7)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-  
-  const ctx2=document.getElementById('dominanceChart').getContext('2d');
-  const btc=coinsData[0].market_cap_percentage||65;
-  const others=100-btc;
-  if(dominanceChart) dominanceChart.destroy();
-  dominanceChart=new Chart(ctx2,{type:'pie',data:{labels:['BTC','Others'],datasets:[{data:[btc,others],backgroundColor:['#ff6a00','#ee0979']}]},options:{responsive:true}});
+// =======================
+// DASHBOARD & ALERTS
+// =======================
+function displayDashboard(){
+  const dashboard=document.getElementById('dashboardCards'); dashboard.innerHTML='';
+  if(coinsData.length===0) return;
+
+  // Top Gainers
+  const topGainers=coinsData.slice().sort((a,b)=>b.price_change_percentage_24h-a.price_change_percentage_24h).slice(0,3);
+  topGainers.forEach(c=>{
+    const card=document.createElement('div'); card.className='coin-card';
+    card.innerHTML=`<img src="${c.image}"><div class="coin-info"><div class="coin-name">${c.name} (${c.symbol.toUpperCase()})</div><div class="coin-price">Price: $${c.current_price}</div></div><div class="coin-change positive">+${c.price_change_percentage_24h.toFixed(2)}%</div><div class="dynamic-note">💹 Gaining Fast</div>`;
+    dashboard.appendChild(card);
+  });
+
+  // Top Losers
+  const topLosers=coinsData.slice().sort((a,b)=>a.price_change_percentage_24h-b.price_change_percentage_24h).slice(0,3);
+  topLosers.forEach(c=>{
+    const card=document.createElement('div'); card.className='coin-card';
+    card.innerHTML=`<img src="${c.image}"><div class="coin-info"><div class="coin-name">${c.name} (${c.symbol.toUpperCase()})</div><div class="coin-price">Price: $${c.current_price}</div></div><div class="coin-change negative">${c.price_change_percentage_24h.toFixed(2)}%</div><div class="dynamic-note">📉 Dropping Fast</div>`;
+    dashboard.appendChild(card);
+  });
+
+  // 24h Volume Leader
+  const volumeLeader=coinsData.slice().sort((a,b)=>b.total_volume-a.total_volume)[0];
+  if(volumeLeader){
+    const card=document.createElement('div'); card.className='coin-card';
+    card.innerHTML=`<img src="${volumeLeader.image}"><div class="coin-info"><div class="coin-name">${volumeLeader.name} (${volumeLeader.symbol.toUpperCase()})</div><div class="coin-price">Price: $${volumeLeader.current_price}</div></div><div class="dynamic-note">💰 24h Volume Leader</div>`;
+    dashboard.appendChild(card);
+  }
 }
 
-// INITIAL FETCH
+// =======================
+// MARKET STATS ENRICHED
+// =======================
+function displayMarketStatsRich(btcDominance){
+  const marketCards=document.getElementById('marketCards'); marketCards.innerHTML='';
+
+  // KPI Cards
+  const totalMarketCap=coinsData.reduce((sum,c)=>sum+c.market_cap,0);
+  const totalVolume=coinsData.reduce((sum,c)=>sum+c.total_volume,0);
+  const gainersCount=coinsData.filter(c=>c.price_change_percentage_24h>0).length;
+  const losersCount=coinsData.filter(c=>c.price_change_percentage_24h<0).length;
+  const volumeLeader=coinsData.slice().sort((a,b)=>b.total_volume-a.total_volume)[0];
+
+  const cardsData=[
+    {title:'Total Market Cap', value:`$${(totalMarketCap/1e9).toFixed(2)}B`, color:'#ff6a00'},
+    {title:'Total 24h Volume', value:`$${(totalVolume/1e9).toFixed(2)}B`, color:'#00ffab'},
+    {title:'Gainers', value:`${gainersCount}`, color:'#00ffab'},
+    {title:'Losers', value:`${losersCount}`, color:'#ff4d6d'},
+    {title:'24h Volume Leader', value:`${volumeLeader.name} ($${(volumeLeader.total_volume/1e6).toFixed(1)}M)`, color:'#ee0979'}
+  ];
+
+  cardsData.forEach(c=>{
+    const card=document.createElement('div'); card.className='coin-card';
+    card.innerHTML=`<div class="coin-info"><div class="coin-name">${c.title}</div><div class="coin-price" style="font-size:1.1rem;color:${c.color};font-weight:bold;">${c.value}</div></div>`;
+    marketCards.appendChild(card);
+  });
+
+  // Market Cap Chart
+  const marketCtx=document.getElementById('marketCapChart').getContext('2d');
+  const labels=coinsData.map(c=>c.symbol.toUpperCase());
+  const marketCaps=coinsData.map(c=>c.market_cap);
+  if(marketCapChart) marketCapChart.destroy();
+  marketCapChart=new Chart(marketCtx,{type:'bar',data:{labels,datasets:[{label:'Market Cap USD',data:marketCaps, backgroundColor:'rgba(255,106,0,0.7)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+
+  // BTC Dominance Chart
+  const domCtx=document.getElementById('dominanceChart').getContext('2d');
+  const others=100-btcDominance;
+  if(dominanceChart) dominanceChart.destroy();
+  dominanceChart=new Chart(domCtx,{type:'pie',data:{labels:['BTC','Others'],datasets:[{data:[btcDominance,others],backgroundColor:['#ff6a00','#ee0979']}]},options:{responsive:true}});
+
+  // Top Gainers
+  const gainCtx=document.getElementById('gainersChart').getContext('2d');
+  const topGainers=coinsData.slice().sort((a,b)=>b.price_change_percentage_24h-a.price_change_percentage_24h).slice(0,5);
+  if(gainersChart) gainersChart.destroy();
+  gainersChart=new Chart(gainCtx,{type:'bar',data:{labels:topGainers.map(c=>c.symbol.toUpperCase()),datasets:[{label:'Top Gainers %',data:topGainers.map(c=>c.price_change_percentage_24h),backgroundColor:'rgba(0,255,171,0.7)'}]},options:{responsive:true}});
+
+  // Top Losers
+  const lossCtx=document.getElementById('losersChart').getContext('2d');
+  const topLosers=coinsData.slice().sort((a,b)=>a.price_change_percentage_24h-a.price_change_percentage_24h).slice(0,5);
+  if(losersChart) losersChart.destroy();
+  losersChart=new Chart(lossCtx,{type:'bar',data:{labels:topLosers.map(c=>c.symbol.toUpperCase()),datasets:[{label:'Top Losers %',data:topLosers.map(c=>c.price_change_percentage_24h),backgroundColor:'rgba(255,77,109,0.7)'}]},options:{responsive:true}});
+}
+
+// =======================
+// LIVE SEARCH
+// =======================
+const searchInput=document.getElementById('coinSearchInput');
+const searchResults=document.getElementById('searchResults');
+
+searchInput.addEventListener('input',()=>{
+  const query=searchInput.value.toLowerCase();
+  searchResults.innerHTML='';
+  if(!query) return;
+
+  const filtered=coinsData.filter(c=>c.name.toLowerCase().includes(query)||c.symbol.toLowerCase().includes(query));
+  if(filtered.length===0){
+    searchResults.innerHTML='<p style="color:#fff;text-align:center;">No coins found.</p>';
+    return;
+  }
+
+  filtered.forEach(c=>{
+    const change=c.price_change_percentage_24h.toFixed(2);
+    let alertMsg='';
+    if(change>=5) alertMsg='🚀 Price Surge!';
+    else if(change <= -5) alertMsg = '⚡ Price Drop!';
+else if(c.total_volume > 1e9) alertMsg = '💰 High Volume';
+
+    const card = document.createElement('div'); 
+    card.className = 'coin-card';
+    card.innerHTML = `
+      <img src="${c.image}">
+      <div class="coin-info">
+        <div class="coin-name">${c.name} (${c.symbol.toUpperCase()})</div>
+        <div class="coin-price">Price: $${c.current_price}</div>
+      </div>
+      <div class="coin-change ${change>=0?'positive':'negative'}">${change}%</div>
+      ${alertMsg ? `<div class="dynamic-note">${alertMsg}</div>` : ''}
+    `;
+    searchResults.appendChild(card);
+  });
+});
+
+// =======================
+// INITIAL FETCH AND INTERVALS
+// =======================
 fetchCoins();
-setInterval(fetchCoins,30000);
+setInterval(fetchCoins, 30000); // تحديث البيانات كل 30 ثانية
+setInterval(() => displayDashboard(), 30000); // تحديث لوحة Dashboard كل 30 ثانية
+setInterval(() => {
+  // تحديث Market Stats مع BTC dominance
+  fetch('https://api.coingecko.com/api/v3/global')
+    .then(res => res.json())
+    .then(globalData => {
+      const btcDominance = globalData.data.market_cap_percentage.btc || 65;
+      displayMarketStatsRich(btcDominance);
+    }).catch(err => console.error(err));
+}, 30000);
+
 </script>
-  
 </body>
 </html>
