@@ -47,13 +47,13 @@ footer{text-align:center;padding:20px;background:rgba(0,0,0,0.3);border-top:2px 
     scrolling="no"
     style="border:0; width:320px; height:50px"
     src="about:blank"
-    id="ad-frame-1">
+    id="ad-frame">
   </iframe>
 </div>
 
 <script>
 (function() {
-  var iframe = document.getElementById('ad-frame-1');
+  var iframe = document.getElementById('ad-frame');
   var doc = iframe.contentWindow.document;
 
   // كتابة صفحة داخل iframe تحتوي على Banner Adsterra
@@ -97,32 +97,27 @@ footer{text-align:center;padding:20px;background:rgba(0,0,0,0.3);border-top:2px 
 <section id="homePage">
 <h2>🔥 Trending & Alerts Dashboard</h2>
 
-
-
 <div id="dashboardCards" class="coins-grid"></div>
 
 <h2>🔎 Search Coins</h2>
-   
-</script>
+
 <input type="text" id="coinSearchInput" placeholder="Type coin name or symbol...">
 <div id="searchResults" class="coins-grid"></div>
 
 <h2>Welcome to CryptoStat Tracker</h2>
-   
+
 <div class="coins-grid" id="homeTop5"></div>
 </section>
 
 <section id="topCoinsPage" class="hidden">
 <h2>Top 20 Cryptocurrencies</h2>
    
-   
-   
 <div class="coins-grid" id="coinsGridTop"></div>
 </section>
 
 <section id="marketStatsPage" class="hidden">
 <h2>Market Stats </h2>
-   
+
 <div id="marketCards" class="coins-grid"></div>
 <div class="chart-container"><canvas id="marketCapChart"></canvas></div>
 <div class="chart-container"><canvas id="dominanceChart"></canvas></div>
@@ -132,9 +127,7 @@ footer{text-align:center;padding:20px;background:rgba(0,0,0,0.3);border-top:2px 
 
 <section id="coinExplorerPage" class="hidden">
 <h2>Coin Explorer</h2>
-   <div style="width:320px; height:50px; margin:0 auto; overflow:hidden;">
-  <iframe
-   
+
 <select id="explorerFilter" style="margin-bottom:15px;padding:8px;border-radius:6px;">
 <option value="all">All Coins</option>
 <option value="topGainers">Top Gainers</option>
